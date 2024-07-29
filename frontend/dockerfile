@@ -1,0 +1,6 @@
+# Use Nginx to serve static files
+FROM nginx:alpine
+# Set the timezone
+ENV TZ=Europe/Berlin
+
+COPY . /usr/share/nginx/html

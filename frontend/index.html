@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Food Monitor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 flex flex-col justify-center items-center min-h-screen">
+    <div class="container mx-auto p-4 shadow-lg rounded bg-white">
+        <h1 class="text-xl font-bold text-center">Cat Food Monitor</h1>
+        <div class="flex justify-center mb-4">
+            <button onclick="showToday()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 mx-2 rounded">
+                Show Today
+            </button>
+            <button onclick="showYesterday()" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 mx-2 rounded">
+                Show Yesterday
+            </button>
+            <button onclick="clearChart()" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 mx-2 rounded">
+                Clear Chart
+            </button>
+        </div>
+        <div>
+            <canvas id="foodChart"></canvas>
+        </div>
+        <div class="flex justify-between items-center mt-4">
+            <input type="date" id="startDate" class="p-2 border rounded">
+            <input type="date" id="endDate" class="p-2 border rounded">
+            <button onclick="fetchData()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Load Data
+            </button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
