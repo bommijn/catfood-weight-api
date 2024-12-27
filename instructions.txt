@@ -1,0 +1,4 @@
+Build the docker with --> docker-compose up --build
+api port = 8000, frontend port 80
+website runs on port 80, so just localhost in the browser.
+To access the api via the browser, go to http://localhost:8000/docs
