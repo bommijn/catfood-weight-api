@@ -5,13 +5,11 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "6969:6969"
-    environment:
-      - TZ=Europe/Berlin
+      - "0.0.0.0:6969:6969"
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "0.0.0.0:80:80"
    
     depends_on:
       - backend

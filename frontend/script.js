@@ -23,24 +23,23 @@ let foodChart = new Chart(ctx, {
     }
 });
 
-
 let lastClearTime = null;
 
 function fetchData() {
-    const startDate = document.getElementById('startDate').valueAsNumber;
-    const endDate = document.getElementById('endDate').valueAsNumber;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
 
     let url = 'http://192.168.1.68:6969/weights/filter/';
     if (startDate && endDate) {
-        url += `?start_date=${startDate}&end_date=${endDate}`;
+        const startTimestamp = new Date(startDate).getTime();
+        const endTimestamp = new Date(endDate).getTime();
+        url += `?start_date=${startTimestamp}&end_date=${endTimestamp}`;
     } else {
-        let now = new Date()
-        const end = now.valueOf();
+        const now = new Date();
+        const end = now.getTime();
         
-        //subtract 5 min voor de start tijd
-        now.setMinutes(now.getMinutes() - 5);
-        
-        const start = lastClearTime ? lastClearTime.valueOf() : now.valueOf();
+        // subtract 5 min for the start time
+        const start = lastClearTime ? lastClearTime.getTime() : now.getTime() - 5 * 60 * 1000;
         url += `?start_date=${start}&end_date=${end}`;
     }
 
@@ -53,23 +52,15 @@ function fetchData() {
                 return;
             }
             
-            // Parse timestamps correctly
-            const dates = data.map(item => parseTimestamp(item.timestamp));
+            // Parse timestamps and adjust for local timezone
+            const dates = data.map(item => adjustToLocalTimezone(new Date(item.timestamp)));
             
             // Sort data by date
-            data.sort((a, b) => new Date(a.date) - new Date(b.date));
+            data.sort((a, b) => adjustToLocalTimezone(new Date(a.timestamp)) - adjustToLocalTimezone(new Date(b.timestamp)));
             
-            // Use the parsed dates instead of the incorrect 'date' field
             const weights = data.map(item => item.weight);
-            const formattedDates = dates.map(date => {
-                // Format the date string as desired (e.g., 'YYYY-MM-DD HH')
-                const year = date.getFullYear();
-                const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-indexed
-                const day = date.getDate().toString().padStart(2, '0');
-                const hours = date.getHours().toString().padStart(2, '0');
+            const formattedDates = dates.map(date => formatDate(date));
             
-                return `${year}-${month}-${day} ${hours}`;
-            });
             foodChart.data.labels = formattedDates;
             foodChart.data.datasets[0].data = weights;
             foodChart.update();
@@ -80,30 +71,43 @@ function fetchData() {
         });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetchData();
-    setInterval(() => {
-        if (!document.getElementById('startDate').value && !document.getElementById('endDate').value) {
-            fetchData(); // update only if no dates are selected
-        }
-    }, 1000); // refresh elke second
-});
+function adjustToLocalTimezone(date) {
+    return new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+}
+
+function formatDate(date) {
+    return date.toLocaleString('en-GB', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+    }).replace(',', '');
+}
+
+
+function setDateTimeInputValue(elementId, date) {
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    const formattedDate = localDate.toISOString().slice(0, 16);
+    document.getElementById(elementId).value = formattedDate;
+}
 
 function showToday() {
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(),0,0,0).valueOf();
-    const nowString = now.valueOf();
-    document.getElementById('startDate').value = startOfToday;
-    document.getElementById('endDate').value = nowString;
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    setDateTimeInputValue('startDate', startOfToday);
+    setDateTimeInputValue('endDate', endOfToday);
     fetchData();
 }
 
 function showYesterday() {
     const now = new Date();
-    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1,0,0,0).valueOf();
-    const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59).valueOf();
-    document.getElementById('startDate').value = startOfYesterday;
-    document.getElementById('endDate').value = endOfYesterday;
+    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+    setDateTimeInputValue('startDate', startOfYesterday);
+    setDateTimeInputValue('endDate', endOfYesterday);
     fetchData();
 }
 
@@ -112,8 +116,8 @@ function clearChart() {
     foodChart.data.datasets[0].data = [];
     foodChart.update();
     lastClearTime = new Date();
-    document.getElementById('startDate').value = null;
-    document.getElementById('endDate').value = null;
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
     displayNotification('Chart cleared. New data will be shown from now.', false);
 }
 
@@ -131,13 +135,11 @@ function displayNotification(message, isError = false) {
     }, 5000);
 }
 
-// Function to parse the timestamp string into a Date object
-function parseTimestamp(timestampString) {
-    // Split the timestamp string into its components
-    const [datePart, timePart] = timestampString.split(' ');
-    const [year, month, day] = datePart.split('-');
-    const [hours, minutes, seconds] = timePart.split(':');
-
-    // Create a new Date object using the components
-    return new Date(Date.UTC(year, month - 1, day, hours));
-}
+document.addEventListener('DOMContentLoaded', () => {
+    fetchData();
+    setInterval(() => {
+        if (!document.getElementById('startDate').value && !document.getElementById('endDate').value) {
+            fetchData(); // update only if no dates are selected
+        }
+    }, 1000); // refresh every second
+});

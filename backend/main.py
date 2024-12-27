@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 app = FastAPI()
@@ -43,7 +43,7 @@ async def get_all_weights():
     with sqlite3.connect('weights.db') as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute("SELECT weight, datetime(timestamp) as timestamp FROM weights ORDER BY timestamp DESC")
+        cur.execute("SELECT weight, datetime(timestamp, 'localtime') as timestamp FROM weights ORDER BY timestamp DESC")
         return [dict(row) for row in cur.fetchall()]
 
 # alle gewichten tussen 2 datums ophalen. 
@@ -60,7 +60,7 @@ async def get_weights_by_date(start_date: int = Query(None), end_date: int = Que
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         cur.execute("""
-            SELECT weight, timestamp
+            SELECT weight, datetime(timestamp, 'localtime') as timestamp
             FROM weights
             WHERE timestamp BETWEEN ? AND ?
             ORDER BY timestamp DESC
@@ -73,7 +73,7 @@ async def get_weights_by_date(start_date: int = Query(None), end_date: int = Que
 async def add_weight(entry: WeightEntry):
     with sqlite3.connect('weights.db') as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO weights (weight, timestamp) VALUES (?, ?)", (entry.weight, datetime.now()))
+        cur.execute("INSERT INTO weights (weight, timestamp) VALUES (?, ?)", (entry.weight, datetime.now(timezone.utc)))
         conn.commit()
         return {"weight": entry.weight, "timestamp": datetime.now().isoformat(), "test": datetime.now()}
 
