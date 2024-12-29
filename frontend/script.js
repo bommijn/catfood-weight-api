@@ -161,9 +161,9 @@ function displayNotification(message, isError = false) {
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchData();
-    setInterval(() => {
-        if (!document.getElementById('startDate').value && !document.getElementById('endDate').value) {
-            fetchData(); // update only if no dates are selected
-        }
-    }, 1000); // refresh every second
+    // setInterval(() => {
+    //     if (!document.getElementById('startDate').value && !document.getElementById('endDate').value) {
+    //         fetchData(); // update only if no dates are selected
+    //     }
+    // }, 1000); // refresh every second
 });
