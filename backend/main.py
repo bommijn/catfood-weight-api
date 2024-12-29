@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import httpx
 
 
@@ -11,10 +11,10 @@ app = FastAPI()
 # CORS alles toe latenm toch lan netwrk
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["http://localhost", "http://localhost:80", "http://192.168.1.68:6969"],
     allow_credentials=True,
-    allow_methods=["*"],  
-    allow_headers=["*"],  
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -57,7 +57,6 @@ async def predict_food_amount(start_date: int = Query(...), end_date: int = Quer
             
             return {
                 "food_added": prediction["food_added"],
-                "confidence": prediction["confidence"],
                 "timestamp": datetime.fromtimestamp(end_date / 1000.0).isoformat()
             }
         except Exception as e:
@@ -78,25 +77,58 @@ async def get_all_weights():
         return [dict(row) for row in cur.fetchall()]
 
 # alle gewichten tussen 2 datums ophalen. 
+# @app.get("/weights/filter/", response_model=list[WeightRecord])
+# async def get_weights_by_date(start_date: int = Query(None), end_date: int = Query(None)):
+#     if not start_date or not end_date:
+#         raise HTTPException(status_code=400, detail="Both start_date and end_date must be provided")
+
+#     # Convert milliseconds to seconds and then to datetime
+#     start_datetime = datetime.fromtimestamp(start_date / 1000.0)
+#     end_datetime = datetime.fromtimestamp(end_date / 1000.0)
+
+#     with sqlite3.connect('weights.db') as conn:
+#         conn.row_factory = sqlite3.Row
+#         cur = conn.cursor()
+#         cur.execute("""
+#             SELECT weight, datetime(timestamp, 'localtime') as timestamp
+#             FROM weights
+#             WHERE timestamp BETWEEN ? AND ?
+#             ORDER BY timestamp DESC
+#             """, (start_datetime, end_datetime))
+#     return [dict(row) for row in cur.fetchall()]
+
+# In your backend main.py
+@app.get("/test/data-generator/")
+async def test_data_generator():
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                "http://data-generator:8001/generate_data/",
+                params={
+                    "start_date": int(datetime.now().timestamp() * 1000),
+                    "end_date": int((datetime.now() + timedelta(hours=1)).timestamp() * 1000)
+                }
+            )
+            return {"status": "success", "data": response.json()}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+
 @app.get("/weights/filter/", response_model=list[WeightRecord])
 async def get_weights_by_date(start_date: int = Query(None), end_date: int = Query(None)):
     if not start_date or not end_date:
         raise HTTPException(status_code=400, detail="Both start_date and end_date must be provided")
-
-    # Convert milliseconds to seconds and then to datetime
-    start_datetime = datetime.fromtimestamp(start_date / 1000.0)
-    end_datetime = datetime.fromtimestamp(end_date / 1000.0)
-
-    with sqlite3.connect('weights.db') as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT weight, datetime(timestamp, 'localtime') as timestamp
-            FROM weights
-            WHERE timestamp BETWEEN ? AND ?
-            ORDER BY timestamp DESC
-            """, (start_datetime, end_datetime))
-    return [dict(row) for row in cur.fetchall()]
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"http://data-generator:8001/generate_data/",
+                params={"start_date": start_date, "end_date": end_date}
+            )
+            data = response.json()
+            return data
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error generating data: {str(e)}")
 
 
 #gewicht toevoegen aan de db.
