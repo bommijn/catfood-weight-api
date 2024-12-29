@@ -24,6 +24,14 @@
         <div>
             <canvas id="foodChart"></canvas>
         </div>
+        <!-- Add prediction display section -->
+        <div class="mt-4 p-4 bg-gray-50 rounded-lg shadow-sm">
+            <h2 class="text-lg font-semibold mb-2">Food Added Prediction</h2>
+            <div class="flex justify-between items-center">
+                <div id="predictionAmount" class="text-2xl font-bold text-green-600">-</div>
+                <div id="predictionConfidence" class="text-sm text-gray-600">Confidence: -</div>
+            </div>
+        </div>
         <div class="flex justify-between items-center mt-4">
             <input type="datetime-local" id="startDate" class="p-2 border rounded">
             <input type="datetime-local" id="endDate" class="p-2 border rounded">

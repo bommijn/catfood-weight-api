@@ -24,24 +24,40 @@ let foodChart = new Chart(ctx, {
 });
 
 let lastClearTime = null;
+async function fetchPrediction(startDate, endDate) {
+    try {
+        const response = await fetch(`http://192.168.1.68:6969/predict/?start_date=${startDate}&end_date=${endDate}`);
+        const prediction = await response.json();
+        
+        // Update prediction display
+        const predictionAmount = document.getElementById('predictionAmount');
+        const predictionConfidence = document.getElementById('predictionConfidence');
+        
+        predictionAmount.textContent = `${prediction.food_added.toFixed(1)}g`;
+        predictionConfidence.textContent = `Confidence: ${(prediction.confidence * 100).toFixed(1)}%`;
+    } catch (error) {
+        console.error('Error fetching prediction:', error);
+        displayNotification('Failed to fetch prediction.', true);
+    }
+}
 
 function fetchData() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
     let url = 'http://192.168.1.68:6969/weights/filter/';
+    let startTimestamp, endTimestamp;
+
     if (startDate && endDate) {
-        const startTimestamp = new Date(startDate).getTime();
-        const endTimestamp = new Date(endDate).getTime();
-        url += `?start_date=${startTimestamp}&end_date=${endTimestamp}`;
+        startTimestamp = new Date(startDate).getTime();
+        endTimestamp = new Date(endDate).getTime();
     } else {
         const now = new Date();
-        const end = now.getTime();
-        
-        // subtract 5 min for the start time
-        const start = lastClearTime ? lastClearTime.getTime() : now.getTime() - 5 * 60 * 1000;
-        url += `?start_date=${start}&end_date=${end}`;
+        endTimestamp = now.getTime();
+        startTimestamp = lastClearTime ? lastClearTime.getTime() : now.getTime() - 5 * 60 * 1000;
     }
+
+    url += `?start_date=${startTimestamp}&end_date=${endTimestamp}`;
 
     fetch(url)
         .then(response => response.json())
@@ -64,6 +80,9 @@ function fetchData() {
             foodChart.data.labels = formattedDates;
             foodChart.data.datasets[0].data = weights;
             foodChart.update();
+
+            // Fetch prediction for the timeframe
+            fetchPrediction(startTimestamp, endTimestamp);
         })
         .catch(error => {
             console.error('Error fetching data:', error);
@@ -118,6 +137,8 @@ function clearChart() {
     lastClearTime = new Date();
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
+    document.getElementById('predictionAmount').textContent = '-';
+    document.getElementById('predictionConfidence').textContent = 'Confidence: -';
     displayNotification('Chart cleared. New data will be shown from now.', false);
 }
 

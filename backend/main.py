@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
 from datetime import datetime, timezone
+import httpx
 
 
 app = FastAPI()
@@ -35,6 +36,36 @@ def init_db():
                 timestamp DATETIME NOT NULL
             );
         ''')
+
+
+@app.post("/predict/")
+async def predict_food_amount(start_date: int = Query(...), end_date: int = Query(...)):
+    # Get weights from database
+    weights_data = await get_weights_by_date(start_date, end_date)
+    
+    # Extract weights
+    weights = [record['weight'] for record in weights_data]
+    
+    # Call model service
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "http://model-service:8000/model/predict/",
+                json={"weights": weights}
+            )
+            prediction = response.json()
+            
+            return {
+                "food_added": prediction["food_added"],
+                "confidence": prediction["confidence"],
+                "timestamp": datetime.fromtimestamp(end_date / 1000.0).isoformat()
+            }
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Model service error: {str(e)}"
+            )
+
 
 
 # alle gewichten ophalen
