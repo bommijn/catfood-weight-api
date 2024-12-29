@@ -26,15 +26,18 @@ let foodChart = new Chart(ctx, {
 let lastClearTime = null;
 async function fetchPrediction(startDate, endDate) {
     try {
-        const response = await fetch(`http://192.168.1.68:6969/predict/?start_date=${startDate}&end_date=${endDate}`);
-        const prediction = await response.json();
-        
-        // Update prediction display
-        const predictionAmount = document.getElementById('predictionAmount');
-        const predictionConfidence = document.getElementById('predictionConfidence');
-        
-        predictionAmount.textContent = `${prediction.food_added.toFixed(1)}g`;
-        predictionConfidence.textContent = `Confidence: ${(prediction.confidence * 100).toFixed(1)}%`;
+        let backendUrl = `http://${window.location.hostname}:6969/predict/?start_date=${startDate}&end_date=${endDate}`;
+        const response = await fetch(backendUrl, {
+            method: 'POST',
+        });
+        if (response.ok) {
+            const prediction = await response.json();
+            // Update prediction display
+            const predictionAmount = document.getElementById('predictionAmount');
+            predictionAmount.textContent = `${prediction.food_added.toFixed(1)}g`;
+        } else {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
     } catch (error) {
         console.error('Error fetching prediction:', error);
         displayNotification('Failed to fetch prediction.', true);
@@ -45,9 +48,9 @@ function fetchData() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
-    let url = 'http://192.168.1.68:6969/weights/filter/';
-    let startTimestamp, endTimestamp;
-
+        const backendUrl = `http://${window.location.hostname}:6969/weights/filter/`;
+        let startTimestamp, endTimestamp;
+        let url = backendUrl;
     if (startDate && endDate) {
         startTimestamp = new Date(startDate).getTime();
         endTimestamp = new Date(endDate).getTime();

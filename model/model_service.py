@@ -8,12 +8,18 @@ from tensorflow import keras
 
 app = FastAPI()
 
-# Load Keras model at startup
+
 try:
-    model = keras.models.load_model('cat_feeder_model.keras')
+    model = keras.models.load_model(
+        'cat_feeder_model.h5',
+        custom_objects={
+            'mse': tf.keras.losses.MeanSquaredError(),
+            'mae': tf.keras.metrics.MeanAbsoluteError()
+        }
+    )
     print("Model loaded successfully")
 except Exception as e:
-    print(f"Error loading model: {str(e)}")
+    print(f"Error loading model: {str(e)}, KERAS VERSION {keras.__version__},,, {tf.__version__}")
     model = None
 
 # Constants
